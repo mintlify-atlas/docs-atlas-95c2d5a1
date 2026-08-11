@@ -1,0 +1,197 @@
+---
+title: "Using the Swappit JavaScript API Directly"
+sidebarTitle: "JavaScript API"
+description: "Use Swappit's programmatic API to call update(), preloadContents(), reinit(), and destroy() from your own JavaScript code."
+---
+
+The declarative approaches — `<swappit-instance>` and `data-swappit-handle` links — cover most scenarios out of the box. But when you need **programmatic control**, the JavaScript API lets you call updates in response to anything: a button click, a form submission, a scroll event, an API response, or a timer. You create a `Swappit` instance directly in JavaScript and call its methods whenever your application logic demands it.
+
+## Creating an instance
+
+Instantiate Swappit with a **handle** — a unique string identifier that becomes the prefix for all `data-*` attributes Swappit manages on the page:
+
+```javascript
+const app = new Swappit('my-app');
+```
+
+With this handle, Swappit looks for elements like `data-my-app-update="header"` when it updates the DOM. You can pass a second argument to configure options:
+
+```javascript
+const app = new Swappit('my-app', {
+  log: true,
+  updateUrl: true,
+  enableHistory: true,
+  preload: 'hover'
+});
+```
+
+| Option | Type | Default | Description |
+|---|---|---|---|
+| `log` | boolean | `false` | Enables color-coded console logging |
+| `updateUrl` | boolean | `false` | Updates the browser URL bar on each `update()` call |
+| `enableHistory` | boolean | `false` | Enables back/forward browser navigation (requires `updateUrl: true`) |
+| `preload` | `false` \| `"hover"` \| `"instant"` | `false` | Default preload mode for `data-swappit-handle` links |
+
+<Note>
+  Every handle must be unique. If you try to create a second instance with the same handle, Swappit throws an error. To reuse an existing instance, retrieve it from the registry instead:
+
+  ```javascript
+  const app = Swappit.instances.get('my-app');
+  ```
+</Note>
+
+## Calling update()
+
+`update(url, useCache?)` fetches the HTML at `url`, finds all matching `data-[handle]-update` regions in the response, and replaces the corresponding elements in the current DOM — without a page reload.
+
+```javascript
+// With cache (default) — uses a previously fetched version if available
+app.update('./page.html');
+
+// Force a fresh download — ignores the cache
+app.update('./page.html', false);
+```
+
+<Note>
+  **URL validation:** Swappit only accepts internal relative URLs for security. A valid URL must start with `/` or `./`. External URLs, bare paths, and paths starting with `../` all throw an error.
+
+  ```javascript
+  // ✅ Valid
+  app.update('/about.html');
+  app.update('./about.html');
+
+  // ❌ Invalid — will throw
+  app.update('https://example.com/page.html'); // External URL
+  app.update('about.html');                    // No leading / or ./
+  app.update('../other/page.html');            // ../ not allowed
+  ```
+</Note>
+
+`update()` emits two lifecycle events you can listen to:
+
+```javascript
+window.addEventListener('swappit:my-app:update:before', (e) => {
+  console.log('Starting update to:', e.detail.url);
+});
+
+window.addEventListener('swappit:my-app:update:after', (e) => {
+  console.log('DOM updated from:', e.detail.url);
+});
+
+window.addEventListener('swappit:my-app:update:error', (e) => {
+  console.error('Update failed for:', e.detail.url);
+});
+```
+
+## Preloading content
+
+`preloadContents(arrayUrls)` fetches and caches a list of URLs **in parallel** without touching the DOM. Any subsequent `update()` call with `useCache: true` (the default) will then resolve instantly from the cache instead of making a network request.
+
+```javascript
+app.preloadContents(['./page1.html', './page2.html', './page3.html']);
+```
+
+This is ideal for warming the cache during idle time — for example, right after the initial page load — so navigation feels instant when the user eventually clicks a link.
+
+```javascript
+// Preload several pages immediately
+app.preloadContents(['./about.html', './contact.html', './products.html']);
+
+// Later, this resolves from cache — no network round trip
+app.update('./about.html');
+
+// Pass false to bypass the cache and force a fresh fetch
+app.update('./about.html', false);
+```
+
+`preloadContents()` deduplicates the array automatically, so passing the same URL more than once is safe.
+
+## Updating options with reinit()
+
+`reinit(options)` merges new options into the existing configuration — only the keys you provide are overwritten — and then re-registers the history listener and DOM observer with the updated settings:
+
+```javascript
+app.reinit({
+  log: true,
+  updateUrl: true,
+  enableHistory: true,
+  preload: 'hover'
+});
+```
+
+Any options you omit remain unchanged. This makes `reinit()` useful for toggling features dynamically at runtime without destroying and recreating the instance.
+
+```javascript
+// Created without history support
+const app = new Swappit('my-app', { updateUrl: false });
+
+// Enable URL updates and history later
+app.reinit({ updateUrl: true, enableHistory: true });
+```
+
+Reinit emits a `swappit:my-app:reinit` event on `window` when complete.
+
+## Destroying an instance
+
+`destroy()` tears down the instance completely and frees all its resources:
+
+```javascript
+app.destroy();
+```
+
+<Steps>
+  <Step title="Marks as destroyed">
+    Sets an internal flag that makes `update()`, `preloadContents()`, and `reinit()` throw if called afterward.
+  </Step>
+  <Step title="Clears the cache">
+    Empties the content cache and cancels in-flight requests by advancing the request ID counter.
+  </Step>
+  <Step title="Removes the popstate listener">
+    Deregisters the `popstate` handler if history navigation was active, and releases the global `__swappitNavigationController` lock.
+  </Step>
+  <Step title="Disconnects the MutationObserver">
+    Stops watching the DOM for newly added links.
+  </Step>
+  <Step title="Removes all link listeners">
+    Strips `click`, `mouseenter`, and `touchstart` listeners from every `data-swappit-handle` link that this instance was managing.
+  </Step>
+  <Step title="Removes from the registry">
+    Deletes the instance from `Swappit.instances` so its handle can be reused.
+  </Step>
+</Steps>
+
+After calling `destroy()`, you can create a brand-new instance with the same handle:
+
+```javascript
+app.destroy();
+
+// Handle is free again
+const freshApp = new Swappit('my-app');
+```
+
+## Accessing all instances
+
+`Swappit.instances` is a static `Map` that holds every active Swappit instance, keyed by handle. You can inspect it, iterate over it, or retrieve a specific instance by name:
+
+```javascript
+// Retrieve a specific instance
+const app = Swappit.instances.get('my-app');
+
+// Check whether an instance exists
+if (Swappit.instances.has('my-app')) {
+  console.log('Instance is active');
+}
+
+// Iterate all active instances
+Swappit.instances.forEach((instance, handle) => {
+  console.log(handle, instance);
+});
+```
+
+<Note>
+  Only **one instance at a time** can control browser history. If you try to create (or `reinit()`) a second instance with both `updateUrl: true` and `enableHistory: true`, Swappit throws:
+
+  > `"Swappit: Solo una instancia puede controlar el historial."`
+
+  If you need to transfer history control, call `destroy()` on the current history-controlling instance first — or use `reinit()` to disable history on it before enabling it on another.
+</Note>

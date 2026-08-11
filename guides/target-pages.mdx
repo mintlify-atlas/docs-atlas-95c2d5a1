@@ -1,0 +1,87 @@
+---
+title: "Setting Up Target Pages for Swappit Updates"
+sidebarTitle: "Target Pages"
+description: "Configure destination HTML pages so Swappit can find and swap the correct update regions using matching data attribute names."
+---
+
+Every page that Swappit loads as a target must contain elements with the same `data-[handle]-update` attribute names as the source page. Swappit matches regions **by name**, not by position or element type — only named regions that exist on both pages are updated.
+
+## Matching Regions by Name
+
+The following example shows a source page and a target page using the handle `app`.
+
+**Source page (index.html)**
+
+```html
+<div data-app-update="header">Original Header</div>
+<div data-app-update="sidebar">Original Sidebar</div>
+<div data-app-update="content">Original Content</div>
+```
+
+**Target page (about.html)**
+
+```html
+<div data-app-update="header">New Header</div>
+<div data-app-update="content">New Content</div>
+<!-- sidebar is missing from this page -->
+<div data-app-update="footer">Footer (ignored — not in source)</div>
+```
+
+After calling `app.update('./about.html')`:
+
+- **`header`** — replaced with the new content from the target page.
+- **`content`** — replaced with the new content from the target page.
+- **`sidebar`** — not found in the target page, so the class `hidden` is added to the source element.
+- **`footer`** — exists only in the target page, not the current DOM, so it is ignored entirely.
+
+## Update Order
+
+By default, Swappit updates all matched regions in document order. You can control the sequence using the `data-[handle]-update-order` attribute. Elements **with** this numeric attribute are updated first, sorted ascending by value. Elements **without** it are updated last.
+
+```html
+<div data-app-update="section1" data-app-update-order="2">Section 1</div>
+<div data-app-update="section2" data-app-update-order="1">Section 2</div>
+<div data-app-update="section3">Section 3 (updates last)</div>
+```
+
+Order of execution: **section2 → section1 → section3**.
+
+This is useful when one region's layout depends on another being updated first — for example, updating a container before its inner panels.
+
+## Duplicate Region Names
+
+<Warning>
+If a target page contains two elements with the **same** `data-[handle]-update` value, Swappit logs a warning and uses the **last** matching element. Ensure all region names are unique within a page to avoid unpredictable swaps.
+</Warning>
+
+## Target Pages Don't Need to Be Full Documents
+
+Target pages can be either complete HTML documents or bare HTML fragments. Swappit uses the browser's built-in `DOMParser` to parse the response text, so a minimal fragment like the following is perfectly valid:
+
+```html
+<div data-app-update="header">
+  <h1>Updated Header</h1>
+</div>
+<div data-app-update="content">
+  <p>Updated paragraph.</p>
+</div>
+```
+
+Serving lightweight fragments instead of full pages reduces response size and speeds up navigation.
+
+## URL Validation
+
+Swappit only accepts relative URLs that begin with `/` or `./`. External URLs and relative paths that use `../` are rejected with an error.
+
+```javascript
+// ✅ Valid
+app.update('/about.html');
+app.update('./about.html');
+
+// ❌ Invalid — throws error
+app.update('about.html');            // No leading / or ./
+app.update('https://example.com');  // External URL
+app.update('../parent.html');       // ../ not allowed
+```
+
+This validation applies equally to `update()`, `preloadContents()`, and the `href` attribute on links with `data-swappit-handle`.

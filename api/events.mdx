@@ -1,0 +1,75 @@
+---
+title: "Swappit Custom Events Reference"
+sidebarTitle: "Events"
+description: "Reference for all custom events Swappit dispatches on window — update lifecycle, history navigation, reinit, and destroy events."
+---
+
+Swappit dispatches `CustomEvent` instances on `window` during its lifecycle. All events carry a `detail` object with `handle` (string) and `url` (string) properties.
+
+<Note>
+  All event names follow the pattern `swappit:[handle]:[action]`. For example, an instance with handle `"app"` emits `swappit:app:update:after`.
+</Note>
+
+## Events
+
+| Event | When emitted | `detail.url` |
+|---|---|---|
+| `swappit:[handle]:update:before` | Before fetching starts | The target URL |
+| `swappit:[handle]:update:after` | After DOM update succeeds | The target URL |
+| `swappit:[handle]:update:error` | On fetch or update error | The target URL |
+| `swappit:[handle]:historyUpdate:before` | Before back/forward navigation update | The current pathname + search |
+| `swappit:[handle]:historyUpdate:after` | After back/forward navigation update | The current pathname + search |
+| `swappit:[handle]:historyUpdate:error` | On error during history navigation | The current pathname + search |
+| `swappit:[handle]:reinit` | After `reinit()` completes | `""` (empty string) |
+| `swappit:[handle]:destroy` | After `destroy()` completes | `""` (empty string) |
+
+## Event detail shape
+
+Every event's `detail` object contains the following fields:
+
+<ResponseField name="handle" type="string">
+  The handle of the Swappit instance that emitted the event.
+</ResponseField>
+
+<ResponseField name="url" type="string">
+  The URL involved in the operation. For `update` and `historyUpdate` events this is the relative URL being loaded. For `reinit` and `destroy` events this is an empty string `""`.
+</ResponseField>
+
+## Complete usage example
+
+```javascript
+const app = new Swappit('app', { log: true });
+
+// Update lifecycle
+window.addEventListener('swappit:app:update:before', (e) => {
+  console.log('Starting update:', e.detail.url);
+  showLoadingSpinner();
+});
+
+window.addEventListener('swappit:app:update:after', (e) => {
+  console.log('Update complete:', e.detail.url);
+  hideLoadingSpinner();
+  // Re-run any inline scripts inside updated regions if needed
+  const scripts = document.querySelectorAll('[data-app-update] script:not([src])');
+  Swappit.updateScriptByContent(Array.from(scripts));
+});
+
+window.addEventListener('swappit:app:update:error', (e) => {
+  console.error('Update failed:', e.detail.url);
+  showErrorMessage();
+});
+
+// History navigation
+window.addEventListener('swappit:app:historyUpdate:after', (e) => {
+  console.log('Navigated to:', e.detail.url);
+});
+
+// Instance lifecycle
+window.addEventListener('swappit:app:reinit', () => {
+  console.log('Instance reinitialized');
+});
+
+window.addEventListener('swappit:app:destroy', () => {
+  console.log('Instance destroyed');
+});
+```

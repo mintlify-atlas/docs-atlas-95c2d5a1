@@ -1,0 +1,61 @@
+---
+title: "Installing Swappit in Your Project"
+sidebarTitle: "Installation"
+description: "Add Swappit to your project via npm, CDN script tag, or direct download. Includes setup notes for each method."
+---
+
+There are three ways to include Swappit in your project: **npm**, **CDN**, or **direct download**. All three deliver the same single file — `swappit.min.js` — and all three expose the same global `window.Swappit` class and register the `<swappit-instance>` custom element as soon as the script is parsed. Choose whichever method fits your project's tooling.
+
+<Steps>
+
+  <Step title="Install via npm">
+    Install the package from the npm registry:
+
+    ```bash
+    npm install @soyleninjs/swappit
+    ```
+
+    Then include the built file in your HTML with a `<script>` tag pointing to the file inside `node_modules`:
+
+    ```html
+    <script src="node_modules/@soyleninjs/swappit/swappit.min.js"></script>
+    ```
+
+    <Note>
+      The package does **not** provide an ES module export (`import`/`export`). You must include it as a classic `<script>` tag. Once loaded, `window.Swappit` is available globally in the browser.
+    </Note>
+  </Step>
+
+  <Step title="Load from CDN">
+    Reference Swappit directly from jsDelivr — no installation required:
+
+    ```html
+    <script src="https://cdn.jsdelivr.net/npm/@soyleninjs/swappit/swappit.min.js"></script>
+    ```
+
+    This is the fastest way to prototype. jsDelivr serves the file from a global CDN, so the script loads quickly for users anywhere in the world. The URL always resolves to the latest published version on npm; pin a specific version by appending `@3.0.0` to the package name if you need a stable reference:
+
+    ```html
+    <script src="https://cdn.jsdelivr.net/npm/@soyleninjs/swappit@3.0.0/swappit.min.js"></script>
+    ```
+  </Step>
+
+  <Step title="Direct download">
+    Download `swappit.min.js` from the [GitHub Releases page](https://github.com/soyleninjs/swappit/releases), place it anywhere in your project, and include it with a `<script>` tag:
+
+    ```html
+    <script src="path/to/swappit.min.js"></script>
+    ```
+
+    This method is ideal when you want full control over versioning and do not use a package manager or CDN.
+  </Step>
+
+</Steps>
+
+<Note>
+  `swappit.min.js` bundles **both** the `Swappit` class and the `<swappit-instance>` custom element in a single file. Once the script is loaded, `window.Swappit` is available globally and the `<swappit-instance>` custom element is registered and ready to use — no further initialization is needed.
+</Note>
+
+<Warning>
+  Swappit only accepts **internal relative URLs** as update targets. A URL must start with `/` or `./` to be valid. Passing an external URL (e.g. `https://example.com/page.html`), a bare relative path without a prefix (e.g. `page.html`), or a path with `../` will throw an error immediately. This validation applies to `update(url)`, `preloadContents(arrayUrls)`, and the `href` attribute of any link managed by `data-swappit-handle`.
+</Warning>

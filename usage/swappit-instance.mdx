@@ -1,0 +1,98 @@
+---
+title: "Declarative Configuration with <swappit-instance>"
+sidebarTitle: "swappit-instance"
+description: "Use the <swappit-instance> custom element to create and configure a Swappit instance declaratively in HTML without writing JavaScript."
+---
+
+`<swappit-instance>` is an HTML custom element that creates (or reinitializes) a Swappit instance using only HTML attributes — no JavaScript required. This makes it ideal for server-rendered templates, CMS-driven pages, and any situation where adding a `<script>` block feels unnecessarily heavy. You configure Swappit the same way you configure everything else in your HTML: with attributes.
+
+## Basic usage
+
+The only required attribute is `data-handle`. This single line creates a fully functional Swappit instance:
+
+```html
+<swappit-instance data-handle="my-app"></swappit-instance>
+```
+
+All other attributes are optional and default to their off states. Place the element anywhere in `<body>` — after the Swappit script tag.
+
+<Note>
+  `<swappit-instance>` must appear **after** the `swappit.min.js` `<script>` tag in your HTML. The custom element is registered by that script, so if the element appears in the DOM before the script has run, the browser won't know what it is and `connectedCallback` will never fire.
+</Note>
+
+## Available attributes
+
+| Attribute | Type | Description | Default |
+|---|---|---|---|
+| `data-handle` | string | Instance handle — must be unique **(required)** | — |
+| `data-log` | presence boolean | Enables color-coded console logging | `false` |
+| `data-update-url` | presence boolean | Updates the browser URL bar on each navigation | `false` |
+| `data-enable-history` | presence boolean | Enables back/forward browser navigation | `false` |
+| `data-preload` | string | Default preload mode for managed links: `"hover"` or `"instant"` | `false` |
+
+**Presence booleans** are activated simply by including the attribute — no value needed. Omitting the attribute is equivalent to `false`:
+
+```html
+<!-- log is ON -->
+<swappit-instance data-handle="my-app" data-log></swappit-instance>
+
+<!-- log is OFF (attribute absent) -->
+<swappit-instance data-handle="my-app"></swappit-instance>
+```
+
+<Warning>
+  `data-enable-history` requires `data-update-url` to have any effect. Without URL updates, Swappit has no URL to push to the browser history stack, so the `popstate` listener is never registered. If you include `data-enable-history` without `data-update-url`, Swappit will log a warning and history navigation will not work.
+</Warning>
+
+## Behavior
+
+When the custom element connects to the DOM, it checks the `Swappit.instances` registry:
+
+<Steps>
+  <Step title="No existing instance">
+    If no instance with the given `data-handle` exists, `<swappit-instance>` creates a new `Swappit` instance using the attribute values as options.
+  </Step>
+  <Step title="Instance already exists">
+    If an instance with that handle is already registered, `<swappit-instance>` calls `reinit()` on it with the new attribute values — merging the new options into the existing instance without destroying it. This lets you re-configure a running instance declaratively, for example after a server-side template re-renders the element with different attributes.
+  </Step>
+</Steps>
+
+## Full example
+
+A complete HTML page combining update regions, declarative configuration, navigation links, and a JavaScript block that accesses the instance and listens to events:
+
+```html
+<!-- Update regions -->
+<div data-my-app-update="header"><h1>Home</h1></div>
+<div data-my-app-update="content"><p>Home content</p></div>
+
+<!-- Declarative instance — all options configured in HTML -->
+<swappit-instance
+  data-handle="my-app"
+  data-log
+  data-update-url
+  data-enable-history
+  data-preload="hover">
+</swappit-instance>
+
+<!-- Navigation links -->
+<a href="./about.html" data-swappit-handle="my-app">About</a>
+<a href="./contact.html" data-swappit-handle="my-app" data-preload="instant">Contact</a>
+
+<script src="https://cdn.jsdelivr.net/npm/@soyleninjs/swappit/swappit.min.js"></script>
+<script>
+  // Access the instance created by the element
+  const myApp = Swappit.instances.get('my-app');
+
+  window.addEventListener('swappit:my-app:update:after', (e) => {
+    console.log('Updated from:', e.detail.url);
+  });
+</script>
+```
+
+Notice that the `<swappit-instance>` element is placed **before** the `<script src="...">` tag in the body — but the script tag must come before any inline `<script>` that references `Swappit`. The custom element itself is processed when `connectedCallback` fires, which happens after the defining script has loaded. A safe layout is:
+
+1. Your update region elements
+2. Your `<swappit-instance>` element (or navigation links)
+3. `<script src="swappit.min.js">` — this defines `Swappit` and registers `<swappit-instance>`
+4. Any additional inline `<script>` blocks that use `Swappit.instances.get()`

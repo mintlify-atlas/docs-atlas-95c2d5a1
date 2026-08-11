@@ -1,0 +1,209 @@
+---
+title: "Troubleshooting Common Swappit Issues"
+sidebarTitle: "Troubleshooting"
+description: "Solutions to common Swappit problems: content not updating, links not working, history not functioning, and cache issues."
+---
+
+If something isn't working as expected, the first step is to enable `log: true` on your instance. Swappit's colorized console output shows exactly what it is doing at each step — successful fetches, DOM updates, warnings about duplicate regions, and errors with their full messages.
+
+```javascript
+const app = new Swappit('app', { log: true });
+```
+
+<AccordionGroup>
+  <Accordion title="Content is not updating">
+    The most common cause is a mismatch between the `data-[handle]-update` attribute names on the source page and the target page, or a different handle string.
+
+    **Checklist:**
+    - The handle passed to `new Swappit('handle')` must exactly match the prefix in your data attributes.
+    - `data-app-update="content"` on the source page requires `data-app-update="content"` (same name) on the target page.
+    - Names are case-sensitive — `Content` ≠ `content`.
+
+    ```html
+    <!-- Source page -->
+    <div data-app-update="content">Original</div>
+
+    <!-- Target page — name must match exactly -->
+    <div data-app-update="content">Updated</div>
+    ```
+  </Accordion>
+
+  <Accordion title="Invalid URL errors in console">
+    Swappit only accepts relative URLs that begin with `/` or `./`. Any other format throws an error.
+
+    ```javascript
+    // ✅ Valid
+    app.update('/about.html');
+    app.update('./about.html');
+
+    // ❌ Invalid — throws error
+    app.update('about.html');           // Missing leading / or ./
+    app.update('https://example.com'); // External URL not allowed
+    app.update('../parent.html');      // ../ prefix not allowed
+    ```
+
+    Check the `href` values of your links as well — the same rule applies to `href` attributes on elements with `data-swappit-handle`.
+  </Accordion>
+
+  <Accordion title="Links don't intercept navigation">
+    Swappit only manages `<a>` elements that have the `data-swappit-handle` attribute set to a handle that matches an active instance.
+
+    ```html
+    <!-- ❌ Missing data-swappit-handle — Swappit ignores this link -->
+    <a href="./page.html">Page</a>
+
+    <!-- ✅ Correctly configured -->
+    <a href="./page.html" data-swappit-handle="app">Page</a>
+    ```
+
+    Also verify that the instance was created **before** the links appeared in the DOM, or that the MutationObserver is running (it starts automatically on construction).
+  </Accordion>
+
+  <Accordion title="Incorrect update order">
+    If updated regions appear to render in the wrong sequence, use the `data-[handle]-update-order` attribute with numeric values. Elements **with** this attribute are processed first (lowest to highest); elements **without** it are processed last.
+
+    ```html
+    <div data-app-update="section1" data-app-update-order="2">Section 1</div>
+    <div data-app-update="section2" data-app-update-order="1">Section 2</div>
+    <div data-app-update="section3">Section 3 (last)</div>
+    ```
+
+    Execution order: **section2 → section1 → section3**.
+  </Accordion>
+
+  <Accordion title='"Handle already in use" error'>
+    Each `handle` string must be unique across all active instances. Passing the same handle to `new Swappit()` twice throws this error.
+
+    ```javascript
+    // ❌ Throws: handle "app" already in use
+    const app1 = new Swappit('app');
+    const app2 = new Swappit('app');
+    ```
+
+    To retrieve an existing instance instead of creating a new one:
+
+    ```javascript
+    const app = Swappit.instances.get('app');
+    ```
+
+    Alternatively, use the `<swappit-instance>` custom element — it automatically calls `reinit()` if an instance with that handle already exists, instead of throwing.
+  </Accordion>
+
+  <Accordion title="History / back-forward buttons don't work">
+    Back and forward buttons only work when **both** `updateUrl: true` and `enableHistory: true` are set. One without the other is not enough.
+
+    ```javascript
+    // ❌ enableHistory alone has no effect
+    const app = new Swappit('app', { enableHistory: true });
+
+    // ✅ Both required
+    const app = new Swappit('app', {
+      updateUrl: true,
+      enableHistory: true
+    });
+    ```
+
+    With only `updateUrl: true` (no `enableHistory`), the URL updates on each swap using `replaceState` but the history stack is not extended.
+  </Accordion>
+
+  <Accordion title='"Only one instance can control history" error'>
+    Only one Swappit instance may have both `updateUrl: true` and `enableHistory: true` active at the same time. A second instance with the same combination throws this error.
+
+    ```javascript
+    // ❌ Second instance throws
+    const app1 = new Swappit('app1', { updateUrl: true, enableHistory: true });
+    const app2 = new Swappit('app2', { updateUrl: true, enableHistory: true }); // Error!
+    ```
+
+    **Fix:** Give only one instance full history control. Other instances can use `updateUrl: true` (without `enableHistory`) if they need URL updates, or omit both options entirely.
+  </Accordion>
+
+  <Accordion title="Preload not working">
+    The `data-preload` attribute (and the `preload` option) only recognize the exact string values `"instant"` and `"hover"`. Any other value — including an empty string or a typo — is silently treated as no preload.
+
+    ```html
+    <!-- ✅ Valid values -->
+    <a href="./page.html" data-swappit-handle="app" data-preload="instant">Instant</a>
+    <a href="./page.html" data-swappit-handle="app" data-preload="hover">Hover</a>
+
+    <!-- ❌ Silently ignored -->
+    <a href="./page.html" data-swappit-handle="app" data-preload="Hover">Wrong case</a>
+    <a href="./page.html" data-swappit-handle="app" data-preload="auto">Unknown value</a>
+    ```
+  </Accordion>
+
+  <Accordion title="Scripts not executing after swap">
+    Scripts inside swapped regions do not execute automatically — this is intentional. Use the static helper methods in the `update:after` event to re-run them explicitly.
+
+    ```javascript
+    window.addEventListener('swappit:app:update:after', () => {
+      // Re-run inline scripts
+      const inlineScripts = document.querySelectorAll('[data-app-update] script:not([src])');
+      if (inlineScripts.length > 0) {
+        Swappit.updateScriptByContent(Array.from(inlineScripts));
+      }
+
+      // Reload an external script by partial src match
+      Swappit.updateScriptBySrc('my-widget.js');
+    });
+    ```
+
+    See the [Script Handling](/guides/script-handling) guide for a full explanation.
+  </Accordion>
+
+  <Accordion title="Cache not refreshing">
+    By default, `update()` serves the URL from cache if it has been fetched before. Pass `false` as the second argument to force a fresh download:
+
+    ```javascript
+    app.update('./page.html', false); // Bypass cache
+    ```
+
+    You can also set this per link in HTML:
+
+    ```html
+    <a href="./page.html" data-swappit-handle="app" data-use-cache="false">Always Fresh</a>
+    ```
+  </Accordion>
+
+  <Accordion title="Dynamically added links not configured">
+    Swappit starts a `MutationObserver` automatically when an instance is created. Any `<a data-swappit-handle="...">` element added to the DOM after initialization is detected and configured automatically — no manual wiring needed.
+
+    If dynamic links still aren't working, enable `log: true` to check for error messages and verify the script loaded correctly before the links were inserted.
+  </Accordion>
+
+  <Accordion title="<swappit-instance> not creating an instance">
+    The `<swappit-instance>` custom element requires a non-empty `data-handle` attribute. Without it, the element logs an error and does nothing.
+
+    ```html
+    <!-- ❌ Missing data-handle — no instance is created -->
+    <swappit-instance></swappit-instance>
+
+    <!-- ✅ Correct -->
+    <swappit-instance data-handle="app"></swappit-instance>
+    ```
+
+    Also make sure the `swappit.min.js` script is loaded — the custom element is defined inside it.
+  </Accordion>
+
+  <Accordion title="Events not firing">
+    Verify the event name follows the exact format: `swappit:[handle]:[event]`.
+
+    ```javascript
+    // ✅ Correct format
+    window.addEventListener('swappit:app:update:after', handler);
+    window.addEventListener('swappit:app:update:before', handler);
+    window.addEventListener('swappit:app:update:error', handler);
+    window.addEventListener('swappit:app:historyUpdate:before', handler);
+    window.addEventListener('swappit:app:historyUpdate:after', handler);
+    window.addEventListener('swappit:app:historyUpdate:error', handler);
+    window.addEventListener('swappit:app:reinit', handler);
+    window.addEventListener('swappit:app:destroy', handler);
+
+    // ❌ Wrong — will never fire
+    window.addEventListener('swappit:update:after', handler);     // Missing handle
+    window.addEventListener('swappit:app:updated', handler);      // Wrong event name
+    ```
+
+    Replace `app` with your actual instance handle. All events are dispatched on `window`.
+  </Accordion>
+</AccordionGroup>

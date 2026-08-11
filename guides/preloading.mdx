@@ -1,0 +1,96 @@
+---
+title: "Preloading Content with Swappit"
+sidebarTitle: "Preloading"
+description: "Preload HTML pages into Swappit's cache before the user clicks — globally, per link, or programmatically — for instant-feel navigation."
+---
+
+Swappit has a built-in content cache. Preloading fetches a URL and stores the parsed HTML document without updating the DOM. When the user then clicks a link, the swap happens instantly from cache — no waiting for a network round trip.
+
+## Preload Modes
+
+Swappit supports three preload modes that control when a URL is fetched relative to user interaction:
+
+<CardGroup cols={3}>
+  <Card title="false (default)" icon="mouse-pointer">
+    Content is fetched only when the user clicks the link. No pre-fetching occurs.
+  </Card>
+  <Card title="hover" icon="hand-pointer">
+    Content is fetched when the mouse enters the link (desktop) or when a `touchstart` fires (mobile). Ideal for secondary pages.
+  </Card>
+  <Card title="instant" icon="bolt">
+    Content is fetched as soon as the page initializes, before any user interaction. Best for high-priority destinations.
+  </Card>
+</CardGroup>
+
+## Global Preload Default
+
+Set a default preload mode for all links managed by an instance at construction time:
+
+```javascript
+const app = new Swappit('app', { preload: 'hover' });
+```
+
+Every link with `data-swappit-handle="app"` will now preload on hover unless overridden individually.
+
+## Per-Link Preload
+
+Override the global default on any individual link using the `data-preload` attribute:
+
+```html
+<!-- Inherits global default (hover in this example) -->
+<a href="./page.html" data-swappit-handle="app">Regular Page</a>
+
+<!-- Override to instant for this specific link -->
+<a href="./page.html" data-swappit-handle="app" data-preload="instant">Fast Page</a>
+
+<!-- Disable preload for this link regardless of global default -->
+<a href="./page.html" data-swappit-handle="app" data-preload="">No Preload</a>
+```
+
+The `data-preload` attribute on a link always takes precedence over the instance's global `preload` option. Only the exact values `"instant"` and `"hover"` are recognized — any other value is treated as no preload.
+
+## Programmatic Preload with `preloadContents()`
+
+Use `preloadContents()` to populate the cache ahead of time from JavaScript:
+
+```javascript
+await app.preloadContents([
+  './header.html',
+  './sidebar.html',
+  './content.html'
+]);
+
+// All three URLs are now cached — update() will use cache by default
+app.update('./content.html');
+```
+
+`preloadContents()` fetches all URLs **in parallel** using `Promise.allSettled()`, so a single failing URL does not block the others. It also deduplicates the URL list automatically using `Set` before fetching — passing the same URL twice is safe.
+
+After the batch completes, Swappit logs a summary (when `log: true`):
+
+```
+Swappit [app]: Precarga completada: 3 exitosas, 0 fallidas
+```
+
+## Cache Invalidation
+
+By default, `update()` uses the cache if the URL has already been fetched. Pass `false` as the second argument to force a fresh download:
+
+```javascript
+app.update('./page.html');        // Uses cache if available
+app.update('./page.html', false); // Forces a new network request
+```
+
+You can also control cache behavior per link with the `data-use-cache` attribute:
+
+```html
+<!-- Always force a fresh download when this link is clicked -->
+<a href="./page.html" data-swappit-handle="app" data-use-cache="false">Always Fresh</a>
+
+<!-- Explicit cache (same as default) -->
+<a href="./page.html" data-swappit-handle="app" data-use-cache="true">Cached</a>
+```
+
+<Tip>
+Use `preload: 'instant'` for the most critical navigation destinations (e.g., the main content area or a dashboard) so the first click feels instantaneous. Use `preload: 'hover'` for secondary pages — it provides a meaningful head start while the user moves their cursor, without wasting bandwidth on pages they never visit.
+</Tip>

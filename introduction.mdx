@@ -1,0 +1,77 @@
+---
+title: "Swappit: Declarative HTML Swapping Without a SPA"
+sidebarTitle: "Introduction"
+description: "Learn what Swappit is, how it works, and when to use it over a full SPA or manual fetch/DOM code."
+---
+
+Swappit is a lightweight, zero-dependency JavaScript library that updates specific regions of your HTML page without a full reload. Instead of wiring up `fetch` calls and manual DOM manipulation — or reaching for an entire SPA framework — you mark the elements you want to update with `data-*` attributes and let Swappit handle the rest. The result is modern, SPA-like navigation with minimal setup and no build step required.
+
+## How It Works
+
+Every Swappit setup revolves around a **handle** — a unique string you choose when creating an instance:
+
+```javascript
+const app = new Swappit('app');
+```
+
+That handle becomes the prefix for a `data-*` attribute you add to any HTML element you want to be swappable:
+
+```html
+<div data-app-update="header">
+  <h1>Home</h1>
+</div>
+<div data-app-update="content">
+  <p>Welcome to the home page.</p>
+</div>
+```
+
+The value of `data-[handle]-update` is a **region name** — a logical identifier, not a CSS selector. When you call `app.update('./about.html')`, Swappit:
+
+1. Fetches the HTML document at that URL.
+2. Parses it in memory (never rendering it to the page).
+3. Finds every element whose `data-app-update` attribute matches a region name that exists in the current DOM.
+4. Replaces the live element with the new one — in place, with no page reload.
+
+If a region exists in the current page but is absent from the fetched document, Swappit hides the element by adding the `hidden` class. If a region exists in the fetched document but not in the current page, it is ignored.
+
+<Tip>
+  Target pages only need the update-region elements themselves. They do not need to be full HTML documents — though they can be.
+</Tip>
+
+## When to Use Swappit
+
+<CardGroup cols={2}>
+  <Card title="✅ Good fit" icon="circle-check">
+    - **Multi-page sites** that want SPA-like navigation without a full rewrite
+    - **Server-rendered HTML** stacks (Rails, Laravel, Django, plain HTML files) where the server already produces the markup
+    - **Progressive enhancement** — Swappit is purely additive; the site still works without JavaScript
+    - Projects that want to **avoid a build pipeline** or heavy framework dependency
+    - Sites where only **specific page regions** change between routes (header, sidebar, main content)
+  </Card>
+  <Card title="❌ Not a fit" icon="circle-xmark">
+    - Applications that require **client-side state management** (shopping carts, form wizards, live dashboards)
+    - Pages driven by **real-time data** (WebSockets, Server-Sent Events, polling)
+    - Projects that already use a **component-based framework** (React, Vue, Svelte) — those handle DOM diffing natively
+    - Apps with **complex client-side routing** logic that goes beyond swapping HTML regions
+  </Card>
+</CardGroup>
+
+## Key Features
+
+- **Partial DOM updates** — Replace only the elements you need using unique region names, leaving the rest of the page untouched.
+- **Three usage patterns** — Programmatic JavaScript API, automatic link handling via `data-swappit-handle`, or a fully declarative `<swappit-instance>` custom element.
+- **Smart preloading** — Configure instant preload (on page load) or hover preload (on `mouseenter`/`touchstart`), globally per instance or individually per link.
+- **History navigation** — Optional `pushState`/`replaceState` integration so browser back and forward buttons work as expected.
+- **Cache system** — Fetched documents are stored in memory; pass `useCache: false` to force a fresh download when needed.
+- **DOM observer** — A `MutationObserver` watches for dynamically added links and wires them up automatically.
+- **Event system** — Custom events fire on `window` before and after every update, on error, on history navigation, on reinit, and on destroy.
+- **Colorized logging** — Four-level debug logging (info, success, warning, error) activated with a single `log: true` option.
+- **Zero dependencies** — No npm dependencies, no build step, no framework required.
+
+## Package Info
+
+| Field   | Value                   |
+|---------|-------------------------|
+| npm     | `@soyleninjs/swappit`   |
+| Version | `3.0.0`                 |
+| License | MIT                     |

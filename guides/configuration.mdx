@@ -1,0 +1,72 @@
+---
+title: "Configuring a Swappit Instance"
+sidebarTitle: "Configuration"
+description: "Configure Swappit at construction time with options for logging, URL updates, history navigation, and default preload behavior."
+---
+
+All options are passed in an object as the second argument to `new Swappit(handle, options)`. Every option defaults to a falsy value — Swappit is zero-config by default and works without any options at all.
+
+```javascript
+const app = new Swappit('my-app'); // Fully valid — all defaults apply
+```
+
+## Options Reference
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `log` | `boolean` | `false` | Enables colorized console logging at 4 severity levels |
+| `updateUrl` | `boolean` | `false` | Updates the browser address bar URL on each `update()` call |
+| `enableHistory` | `boolean` | `false` | Enables back/forward browser navigation. Requires `updateUrl: true` |
+| `preload` | `string\|false` | `false` | Default preload mode for links: `false`, `"hover"`, or `"instant"` |
+
+## Full Configuration Example
+
+```javascript
+const app = new Swappit('my-app', {
+  log: true,
+  updateUrl: true,
+  enableHistory: true,
+  preload: 'hover'
+});
+```
+
+## Option Interactions
+
+<Note>
+`enableHistory: true` has no effect without `updateUrl: true` — the `popstate` listener is only registered when **both** options are active.
+
+- **`updateUrl: true` + `enableHistory: false`** — The URL in the address bar is updated on each navigation using `history.replaceState()`. The history stack is not extended; the back button returns to the page that existed before Swappit started.
+- **`updateUrl: true` + `enableHistory: true`** — Each navigation adds a new entry to the browser history stack via `history.pushState()`, enabling back and forward buttons.
+- **Only one instance** can have both `updateUrl` and `enableHistory` active at the same time. Creating a second instance with both options enabled will throw an error.
+</Note>
+
+## Updating Options at Runtime
+
+Use `reinit()` to change options after the instance is created. Options are **merged** — only the keys you provide are overwritten; all other options keep their current values.
+
+```javascript
+app.reinit({
+  log: true,
+  preload: 'hover'
+});
+```
+
+This is particularly useful when the `<swappit-instance>` custom element is used — it calls `reinit()` automatically if an instance with the same handle already exists.
+
+## Logging Levels
+
+When `log: true` is set, Swappit writes colorized messages to the browser console. Messages are prefixed with `Swappit [handle]:` and colored by severity:
+
+| Level | Color | When it appears |
+|-------|-------|-----------------|
+| `info` | Blue (`#3498db`) | General lifecycle events (instance created, etc.) |
+| `success` | Green (`#2ecc71`) | Successful fetches, DOM updates, and preloads |
+| `warning` | Yellow (`#f39c12`) | Non-fatal issues such as duplicate update regions |
+| `error` | Red (`#e74c3c`) | Failed fetches and invalid URL errors |
+
+Enable logging when debugging unexpected behavior — the output shows exactly what Swappit is doing at each step of the update cycle.
+
+```javascript
+const app = new Swappit('my-app', { log: true });
+// Console: %cSwappit [my-app]: Nueva instancia creada  (blue)
+```

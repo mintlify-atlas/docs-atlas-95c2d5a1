@@ -1,0 +1,132 @@
+---
+title: "Swappit HTML Data Attributes Reference"
+sidebarTitle: "Data Attributes"
+description: "Reference for all HTML data attributes used by Swappit — update region markers, link configuration, and swappit-instance element attributes."
+---
+
+Swappit's declarative API is built on HTML `data-*` attributes. There are three groups: update region attributes (on the elements being swapped), link attributes (on `<a>` tags), and `<swappit-instance>` attributes.
+
+---
+
+## Update Region Attributes
+
+These attributes go on elements you want Swappit to swap when `update()` is called. Both the source page and the destination page must use matching attribute names and values for the swap to occur.
+
+<Note>
+  If a region name exists in the current DOM but is absent from the fetched page, Swappit adds the class `hidden` to that element rather than removing it entirely. If a region exists only in the fetched page but not in the current DOM, it is ignored.
+</Note>
+
+<ParamField path="data-[handle]-update" type="string" required>
+  Identifies an update region. Replace `[handle]` with your instance's handle string. The attribute value is the region name used to match elements between the current page and the fetched page.
+
+  Example: for an instance with handle `"app"`, use `data-app-update="content"`. Swappit will replace the element carrying `data-app-update="content"` in the live DOM with the element of the same name found in the fetched HTML.
+</ParamField>
+
+<ParamField path="data-[handle]-update-order" type="number">
+  Controls the sequence in which update regions are swapped. Elements that have this attribute are updated first, sorted by their value in ascending order. Elements without this attribute are updated last, in document order.
+
+  Example: for handle `"app"`, use `data-app-update-order="1"`.
+</ParamField>
+
+### Example
+
+```html
+<!-- Updates first (order 1) -->
+<div data-app-update="nav" data-app-update-order="1">Navigation</div>
+
+<!-- Updates second (order 2) -->
+<div data-app-update="header" data-app-update-order="2">Header</div>
+
+<!-- Updates last (no order attribute) -->
+<div data-app-update="content">Main content</div>
+```
+
+---
+
+## Link Attributes
+
+These attributes go on `<a>` tags to make them automatically trigger Swappit updates on click. Swappit's DOM observer detects these links when the page loads and whenever new ones are added dynamically.
+
+<ParamField path="data-swappit-handle" type="string" required>
+  Connects the link to a Swappit instance by handle. When the link is clicked, Swappit calls `instance.update(href)` using the link's `href` as the URL. The value must exactly match the `handle` of an existing Swappit instance.
+</ParamField>
+
+<ParamField path="data-preload" type="string">
+  Preload mode for this specific link. Overrides the instance-level `preload` option for this link only. Accepted values:
+
+  - `"instant"` — the URL is fetched and cached as soon as the DOM observer registers the link.
+  - `"hover"` — the URL is fetched and cached when the user hovers over the link (desktop `mouseenter`) or touches it (mobile `touchstart`).
+
+  If omitted, the link inherits the instance's `preload` option. If that is also `false`, content is only fetched on click.
+</ParamField>
+
+<ParamField path="data-use-cache" type='"true" | "false"' default='"true"'>
+  Whether to use the cache when this link is clicked.
+
+  - `"true"` (default) — if the URL is already cached, `update()` skips the network fetch.
+  - `"false"` — always fetches fresh content from the network when the link is clicked, regardless of the cache.
+</ParamField>
+
+### Example
+
+```html
+<!-- Default: fetches only on click, uses cache -->
+<a href="./page.html" data-swappit-handle="app">Default (click to load)</a>
+
+<!-- Fetches on hover, uses cache -->
+<a href="./page.html" data-swappit-handle="app" data-preload="hover">Hover to preload</a>
+
+<!-- Fetches immediately on page load, uses cache -->
+<a href="./page.html" data-swappit-handle="app" data-preload="instant">Instant preload</a>
+
+<!-- Always fetches fresh content on click -->
+<a href="./page.html" data-swappit-handle="app" data-use-cache="false">Always fresh</a>
+```
+
+---
+
+## swappit-instance Attributes
+
+These attributes configure the `<swappit-instance>` custom element, which provides a fully declarative way to create or reconfigure a Swappit instance directly in HTML.
+
+When `<swappit-instance>` connects to the DOM, it checks `Swappit.instances` for an existing instance with the given `data-handle`. If one is found, it calls `reinit()` with the new options. If not, it calls `new Swappit(handle, options)`.
+
+<ParamField path="data-handle" type="string" required>
+  The instance handle. Must be unique among all active Swappit instances, unless you intentionally want to reconfigure an existing one (in which case `reinit()` is called automatically).
+</ParamField>
+
+<ParamField path="data-log" type="presence boolean">
+  Enables colorized console logging when the attribute is present on the element. No value is needed — the presence of the attribute is sufficient.
+
+  ```html
+  <swappit-instance data-handle="app" data-log></swappit-instance>
+  ```
+</ParamField>
+
+<ParamField path="data-update-url" type="presence boolean">
+  Enables browser address bar updates on each `update()` call when present. No value needed.
+</ParamField>
+
+<ParamField path="data-enable-history" type="presence boolean">
+  Enables back/forward browser navigation when present. Requires `data-update-url` to also be present on the same element.
+
+  <Warning>
+    If `data-enable-history` is present but `data-update-url` is absent, `<swappit-instance>` logs a console warning and the history listener is not registered.
+  </Warning>
+</ParamField>
+
+<ParamField path="data-preload" type="string">
+  Default preload mode for all `<a data-swappit-handle>` links managed by this instance. Accepted values: `"hover"` or `"instant"`. Any other value (including omitting the attribute) results in `false` — no default preloading.
+</ParamField>
+
+### Example
+
+```html
+<swappit-instance
+  data-handle="app"
+  data-log
+  data-update-url
+  data-enable-history
+  data-preload="hover">
+</swappit-instance>
+```

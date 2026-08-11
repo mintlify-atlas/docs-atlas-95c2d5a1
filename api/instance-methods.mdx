@@ -1,0 +1,177 @@
+---
+title: "Swappit Instance Methods Reference"
+sidebarTitle: "Instance Methods"
+description: "Reference for Swappit instance methods: update(), preloadContents(), reinit(), and destroy() — with signatures, parameters, and behavior details."
+---
+
+Swappit instances expose four public methods. All methods throw if called on a destroyed instance — the sole exception is `destroy()` itself, which is a no-op when the instance is already destroyed.
+
+---
+
+## update()
+
+Fetches the HTML at `url`, finds all elements in the fetched document that carry matching `data-[handle]-update` region names, and replaces the corresponding elements in the live DOM. If the `updateUrl` option is active, the browser address bar is updated before the DOM is modified.
+
+The method emits three lifecycle events on `window`:
+- `swappit:[handle]:update:before` — fired immediately before the fetch starts.
+- `swappit:[handle]:update:after` — fired after the DOM has been successfully updated.
+- `swappit:[handle]:update:error` — fired if the fetch or DOM update fails.
+
+**Syntax**
+
+```javascript
+await instance.update(url, useCache);
+```
+
+### Parameters
+
+<ParamField path="url" type="string" required>
+  The relative URL of the page to fetch. Must start with `/` or `./`. External URLs and relative paths starting with `../` are rejected with an error.
+
+  <Warning>
+    Swappit only accepts internal relative URLs for security. Paths like `https://example.com/page.html` or `page.html` (without a leading `/` or `./`) will throw.
+  </Warning>
+</ParamField>
+
+<ParamField path="useCache" type="boolean" default="true">
+  Controls cache behavior for this specific call.
+
+  - `true` (default) — if the URL was already fetched and stored, the cached document is used and no network request is made.
+  - `false` — always fetches fresh content from the network, even if a cached version exists.
+</ParamField>
+
+### Returns
+
+`Promise<void>`
+
+### Example
+
+```javascript
+// Load with cache (default)
+await app.update('./about.html');
+
+// Force a fresh network fetch, bypassing cache
+await app.update('./about.html', false);
+```
+
+---
+
+## preloadContents()
+
+Fetches and caches content for an array of URLs in parallel without modifying the DOM. Use this to warm the cache before the user navigates so that subsequent `update()` calls resolve instantly from cache.
+
+The URL list is deduplicated automatically. The underlying implementation uses `Promise.allSettled()`, so a failure on one URL does not abort the rest of the batch.
+
+**Syntax**
+
+```javascript
+await instance.preloadContents(arrayUrls);
+```
+
+### Parameters
+
+<ParamField path="arrayUrls" type="string[]" required>
+  Array of relative URLs to preload. Each URL must follow the same rules as `update()` — it must start with `/` or `./`. Duplicates in the array are ignored. An empty array or a non-array value logs a warning and returns early without throwing.
+</ParamField>
+
+### Returns
+
+`Promise<void>`
+
+### Example
+
+```javascript
+await app.preloadContents([
+  './page1.html',
+  './page2.html',
+  './page3.html'
+]);
+
+// Later calls use the cache immediately
+await app.update('./page1.html');
+```
+
+---
+
+## reinit()
+
+Merges the provided `options` into the current options object (shallow merge), then re-initializes the history handler and the DOM observer. Only the keys you supply are overwritten; all other options retain their previous values.
+
+After merging, `reinit()` emits the `swappit:[handle]:reinit` event on `window`.
+
+<Tip>
+  The `<swappit-instance>` custom element calls `reinit()` automatically when it connects to the DOM and finds that an instance with the same handle already exists. This lets you update Swappit's configuration declaratively without duplicating handles.
+</Tip>
+
+**Syntax**
+
+```javascript
+instance.reinit(options);
+```
+
+### Parameters
+
+<ParamField path="options" type="object">
+  Partial options object. Only the keys present in this object are overwritten on the instance. Omitted keys keep their current values.
+
+  Accepts the same fields as the constructor `options` parameter: `log`, `updateUrl`, `enableHistory`, and `preload`.
+</ParamField>
+
+### Returns
+
+`void`
+
+### Example
+
+```javascript
+const app = new Swappit('my-app', {
+  updateUrl: false,
+  preload: false
+});
+
+// Later, enable logging and hover preload without changing other settings
+app.reinit({
+  log: true,
+  preload: 'hover'
+});
+
+// app.options is now:
+// { log: true, updateUrl: false, enableHistory: false, preload: 'hover' }
+```
+
+---
+
+## destroy()
+
+Permanently destroys the instance. Performs all cleanup in this order:
+
+1. Marks `instance.destroyed = true` to block future method calls.
+2. Clears the content cache.
+3. Cancels in-flight requests by incrementing the internal request ID counter.
+4. Removes the `popstate` event listener (if history was enabled).
+5. Disconnects the `MutationObserver` that watched for new links.
+6. Removes `click`, `mouseenter`, and `touchstart` listeners from all managed `<a>` elements.
+7. Releases the global navigation controller lock if this instance held it.
+8. Emits `swappit:[handle]:destroy` on `window`.
+9. Removes the instance from `Swappit.instances`.
+
+After `destroy()` returns, calling `update()`, `reinit()`, or `preloadContents()` on the same reference throws an error. Calling `destroy()` again on an already-destroyed instance is a safe no-op.
+
+**Syntax**
+
+```javascript
+instance.destroy();
+```
+
+### Returns
+
+`void`
+
+### Example
+
+```javascript
+app.destroy();
+
+// The handle is now free — a new instance can use it
+const newApp = new Swappit('my-app');
+```

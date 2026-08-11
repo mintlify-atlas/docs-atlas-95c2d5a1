@@ -1,0 +1,88 @@
+---
+title: "Swappit Constructor and Instance Properties"
+sidebarTitle: "Constructor"
+description: "Create a Swappit instance with new Swappit(handle, options). Reference for all constructor parameters, option fields, and instance properties."
+---
+
+`new Swappit(handle, options)` creates a new Swappit instance, registers it in `Swappit.instances`, and starts the DOM observer for links. Every instance is identified by a unique `handle` string, which becomes the prefix for all `data-*` attributes that instance controls.
+
+## Syntax
+
+```javascript
+const swappit = new Swappit(handle, options);
+```
+
+## Parameters
+
+<ParamField path="handle" type="string" required>
+  Unique identifier for this instance. Used as a prefix in `data-[handle]-update` attributes on the elements Swappit will swap. For example, if `handle` is `"app"`, the update region attribute becomes `data-app-update`.
+
+  Throws if the value is falsy or if a Swappit instance with the same handle is already registered in `Swappit.instances`.
+</ParamField>
+
+<ParamField path="options" type="object">
+  Optional configuration object. All fields have defaults; you only need to provide the ones you want to change. See **Options object fields** below.
+</ParamField>
+
+## Options object fields
+
+<ParamField path="options.log" type="boolean" default="false">
+  Activates colorized console logging for this instance. Log messages are prefixed with `Swappit [handle]:` and are color-coded by severity: blue for info, green for success, yellow for warning, and red for error.
+</ParamField>
+
+<ParamField path="options.updateUrl" type="boolean" default="false">
+  Updates the browser address bar URL on each `update()` call. When `enableHistory` is `false`, uses `history.replaceState()` so no new history entry is created. When `enableHistory` is `true`, uses `history.pushState()` instead.
+</ParamField>
+
+<ParamField path="options.enableHistory" type="boolean" default="false">
+  Enables a `popstate` listener so that browser back/forward navigation triggers a Swappit `update()`. Requires `updateUrl: true` — if `updateUrl` is `false`, this option has no effect.
+
+  <Warning>
+    Only one Swappit instance can control browser history at a time. Attempting to create a second instance with both `updateUrl: true` and `enableHistory: true` throws immediately.
+  </Warning>
+</ParamField>
+
+<ParamField path="options.preload" type="string | false" default="false">
+  Default preload mode applied to all `<a data-swappit-handle>` links that do not specify their own `data-preload` attribute. Accepted values:
+
+  - `false` — no preloading; content is fetched only when the link is clicked.
+  - `"hover"` — content is fetched when the user hovers over (desktop) or touches (mobile) the link.
+  - `"instant"` — content is fetched immediately when the DOM observer registers the link.
+
+  Individual links can override this default with their own `data-preload` attribute.
+</ParamField>
+
+## Throws
+
+| Error message | Cause |
+|---|---|
+| `"Swappit: El parámetro handle es obligatorio"` | `handle` is falsy (empty string, `null`, `undefined`, etc.). |
+| `"Swappit: El handle \"[handle]\" ya está en uso..."` | A Swappit instance with that handle is already registered in `Swappit.instances`. |
+| `"Swappit: Solo una instancia puede controlar el historial."` | A second instance is constructed with both `updateUrl: true` and `enableHistory: true` while another instance already controls history. |
+
+## Example
+
+```javascript
+const app = new Swappit('my-app', {
+  log: true,
+  updateUrl: true,
+  enableHistory: true,
+  preload: 'hover'
+});
+```
+
+## Instance properties
+
+The following public properties are available on every Swappit instance after construction.
+
+<ParamField path="handle" type="string">
+  The registered handle string passed to the constructor. Used as the prefix in all `data-*` attribute selectors managed by this instance.
+</ParamField>
+
+<ParamField path="options" type="object">
+  The current options object for this instance. Reflects the merged result of the defaults and any values passed at construction time. Updated in place when `reinit()` is called.
+</ParamField>
+
+<ParamField path="destroyed" type="boolean">
+  Whether the instance has been permanently destroyed. Set to `true` by `destroy()`. Once `true`, calling `update()`, `reinit()`, or `preloadContents()` throws an error.
+</ParamField>

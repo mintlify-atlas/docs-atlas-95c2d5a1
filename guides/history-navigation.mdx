@@ -1,0 +1,100 @@
+---
+title: "Browser History Navigation in Swappit"
+sidebarTitle: "History Navigation"
+description: "Enable back and forward browser button support in Swappit by configuring updateUrl and enableHistory together."
+---
+
+Swappit supports the browser History API so users can navigate with the back and forward buttons after partial page updates. By default, Swappit updates the DOM without touching the address bar or the history stack at all. History support is opt-in and requires two options to be enabled together.
+
+<Warning>
+`enableHistory: true` alone has no effect. The `popstate` listener is only registered when **both** `updateUrl: true` and `enableHistory: true` are set simultaneously.
+</Warning>
+
+## Configuration
+
+### JavaScript API
+
+```javascript
+const app = new Swappit('app', {
+  updateUrl: true,
+  enableHistory: true
+});
+```
+
+### Declarative (`<swappit-instance>`)
+
+```html
+<swappit-instance
+  data-handle="app"
+  data-update-url
+  data-enable-history>
+</swappit-instance>
+```
+
+The boolean attributes `data-update-url` and `data-enable-history` are activated by **presence** — no value is needed.
+
+## What Happens Internally
+
+<Steps>
+  <Step title="Initialization">
+    When an instance is created with both `updateUrl: true` and `enableHistory: true`, Swappit immediately calls:
+
+    ```javascript
+    history.replaceState({ swappit: true }, '', window.location.href);
+    ```
+
+    This tags the initial page state so Swappit can recognize its own history entries during `popstate` events. The current URL is not changed.
+  </Step>
+  <Step title="Each update() call">
+    On every `update()` call, Swappit calls:
+
+    ```javascript
+    history.pushState({ swappit: true }, '', url);
+    ```
+
+    This adds a new entry to the browser's history stack with the target URL. The user can now press the back button to return to the previous state.
+  </Step>
+  <Step title="Back / forward navigation (popstate)">
+    When the user presses back or forward, the browser fires a `popstate` event. Swappit listens for this event, checks that the state was set by Swappit (`event.state?.swappit`), then re-fetches and re-renders the page at that URL — using the cache if it is already populated.
+  </Step>
+</Steps>
+
+## `updateUrl` Without `enableHistory`
+
+When only `updateUrl: true` is set (and `enableHistory` remains `false`), Swappit calls `history.replaceState()` instead of `pushState()` on each navigation. The address bar URL updates on every swap, but the history stack is **not** extended. Pressing the back button takes the user back to whatever page existed before Swappit was initialized.
+
+This is useful when you want the URL to reflect the current content state for bookmarking or sharing purposes, but you don't need back/forward navigation within the SPA.
+
+## Constraint: One History Controller at a Time
+
+Only one Swappit instance can control the browser history at a time. Attempting to create a second instance with both `updateUrl: true` and `enableHistory: true` will throw an error:
+
+```javascript
+// ❌ This throws: only one instance can control history
+const app1 = new Swappit('app1', { updateUrl: true, enableHistory: true });
+const app2 = new Swappit('app2', { updateUrl: true, enableHistory: true }); // Error!
+```
+
+To work around this, give only one instance full history control and use `updateUrl: true` (without `enableHistory`) on others, or use only a single instance for navigation.
+
+## History Events
+
+Swappit emits custom events on `window` during history navigation that you can listen to:
+
+```javascript
+window.addEventListener('swappit:app:historyUpdate:before', (e) => {
+  console.log('Navigating back/forward to:', e.detail.url);
+  // e.detail = { handle: 'app', url: '/about.html' }
+});
+
+window.addEventListener('swappit:app:historyUpdate:after', (e) => {
+  console.log('Navigation complete:', e.detail.url);
+  // Re-initialize any scripts or UI state here
+});
+
+window.addEventListener('swappit:app:historyUpdate:error', (e) => {
+  console.error('History navigation failed for:', e.detail.url);
+});
+```
+
+The `e.detail` object always contains `handle` (the instance handle) and `url` (the target URL).

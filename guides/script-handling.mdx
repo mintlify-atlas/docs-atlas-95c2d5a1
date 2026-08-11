@@ -1,0 +1,73 @@
+---
+title: "Handling Scripts After Swappit DOM Updates"
+sidebarTitle: "Script Handling"
+description: "Swappit does not re-execute scripts in swapped HTML. Learn how to use the static methods to re-run inline and external scripts after updates."
+---
+
+When Swappit replaces a region, any `<script>` tags within the swapped HTML are **not automatically executed**. This is intentional — use the static helper methods described below to explicitly re-run scripts at the right time.
+
+## Why Scripts Don't Auto-Execute
+
+Swappit deliberately skips script execution during DOM updates for three reasons:
+
+1. **Prevents double initialization** — third-party libraries (sliders, maps, widgets) often break or duplicate elements if their setup function runs more than once.
+2. **Avoids re-running analytics** — page-view tracking and other one-shot scripts should only fire when you explicitly choose to send them.
+3. **Gives you full control** — you decide which scripts need to run after a swap and exactly when they run.
+
+## Re-Running Inline Scripts
+
+Use `Swappit.updateScriptByContent()` inside the `update:after` event to re-execute inline `<script>` tags found in updated regions.
+
+```javascript
+window.addEventListener('swappit:app:update:after', () => {
+  const scripts = document.querySelectorAll('[data-app-update] script:not([src])');
+  Swappit.updateScriptByContent(Array.from(scripts));
+});
+```
+
+The method accepts an **array of `<script>` DOM nodes**. For each node it:
+
+1. Creates a new `<script>` element with the same `textContent`.
+2. Replaces the original node with the new one.
+
+Inserting a fresh `<script>` node into the DOM forces the browser to execute its content, even if an identical script has run before.
+
+## Reloading External Scripts by URL Match
+
+Use `Swappit.updateScriptBySrc()` to reload external scripts whose `src` attribute matches a given string.
+
+```javascript
+window.addEventListener('swappit:app:update:after', () => {
+  // Reload any script whose src contains 'analytics'
+  Swappit.updateScriptBySrc('analytics');
+});
+```
+
+The method:
+
+1. Queries all `<script src="...">` elements whose `src` contains the match string.
+2. Removes each matching script from the DOM.
+3. Re-inserts a new `<script>` with a `?timestamp=...` (or `&timestamp=...` if the URL already has a query string) cache-busting query parameter appended — forcing the browser to download a fresh copy.
+
+## Complete Example
+
+```javascript
+const app = new Swappit('app', { log: true });
+
+window.addEventListener('swappit:app:update:after', (e) => {
+  console.log('Swapped content from:', e.detail.url);
+
+  // Re-run inline scripts inside updated regions
+  const inlineScripts = document.querySelectorAll('[data-app-update] script:not([src])');
+  if (inlineScripts.length > 0) {
+    Swappit.updateScriptByContent(Array.from(inlineScripts));
+  }
+
+  // Reload a specific external script
+  Swappit.updateScriptBySrc('my-widget.js');
+});
+```
+
+<Note>
+Swappit handles `<noscript>` elements specially during DOM updates: it sets `textContent = innerHTML` on each `<noscript>` in the cloned region. This preserves the noscript content as plain text so it renders correctly in browsers where JavaScript is enabled, matching standard browser behavior.
+</Note>

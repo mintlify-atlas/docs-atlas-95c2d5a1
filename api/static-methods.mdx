@@ -1,0 +1,107 @@
+---
+title: "Swappit Static Methods and Properties"
+sidebarTitle: "Static Methods"
+description: "Reference for Swappit.instances, Swappit.updateScriptByContent(), and Swappit.updateScriptBySrc() — the static API surface."
+---
+
+Swappit exposes two static methods for script management and one static property for instance registry. These are accessed directly on the `Swappit` class, not on instances.
+
+---
+
+## Swappit.instances
+
+**Type:** `Map<string, Swappit>`
+
+A registry of all active Swappit instances, keyed by their handle string. Instances are added to the map when constructed and removed when `destroy()` is called.
+
+<Tip>
+  Use `Swappit.instances.get('your-handle')` to retrieve an existing instance rather than storing it in a variable — useful when you need to access an instance that was created elsewhere (for example, by a `<swappit-instance>` element).
+</Tip>
+
+### Example
+
+```javascript
+// Retrieve an existing instance by handle
+const app = Swappit.instances.get('my-app');
+
+// Check whether an instance exists before using it
+if (Swappit.instances.has('my-app')) {
+  Swappit.instances.get('my-app').update('./page.html');
+}
+
+// Iterate over all active instances
+Swappit.instances.forEach((instance, handle) => {
+  console.log(handle, instance);
+});
+```
+
+---
+
+## Swappit.updateScriptByContent()
+
+Recreates inline `<script>` elements in the DOM to force re-execution of their content. When Swappit swaps a region, the browser does not automatically execute `<script>` tags inside the replaced HTML. Call this method in an `update:after` event handler to run those scripts.
+
+For each node in the array, the method creates a new `<script>` element, copies the original `textContent` into it, and replaces the old node with the new one. The act of inserting a fresh `<script>` node causes the browser to execute its content.
+
+**Syntax**
+
+```javascript
+Swappit.updateScriptByContent(arrayScriptsNodes);
+```
+
+### Parameters
+
+<ParamField path="arrayScriptsNodes" type="HTMLScriptElement[]">
+  Array of inline script DOM nodes (elements without a `src` attribute) whose content should be re-executed. Pass the result of `Array.from(nodeList)` if you have a `NodeList`.
+</ParamField>
+
+### Returns
+
+`void`
+
+### Example
+
+```javascript
+window.addEventListener('swappit:app:update:after', () => {
+  // Select all inline scripts inside updated regions
+  const scripts = document.querySelectorAll('[data-app-update] script:not([src])');
+  Swappit.updateScriptByContent(Array.from(scripts));
+});
+```
+
+---
+
+## Swappit.updateScriptBySrc()
+
+Reloads external `<script src="...">` elements whose `src` attribute contains `matchUrl`, appending a `?timestamp=<Date.now()>` query parameter to bust the browser cache. The old `<script>` element is replaced with the new one, causing the browser to re-fetch and re-execute the script.
+
+<Note>
+  If the script's existing `src` already contains a query string, the timestamp is appended with `&timestamp=...` to avoid breaking the existing parameters.
+</Note>
+
+**Syntax**
+
+```javascript
+Swappit.updateScriptBySrc(matchUrl);
+```
+
+### Parameters
+
+<ParamField path="matchUrl" type="string">
+  Substring to match against script `src` attributes. Any `<script>` whose `src` contains this string will be reloaded. Uses `querySelectorAll('script[src*="matchUrl"]')` internally.
+</ParamField>
+
+### Returns
+
+`void`
+
+### Example
+
+```javascript
+window.addEventListener('swappit:app:update:after', () => {
+  // Reload any script whose src contains 'analytics.js'
+  Swappit.updateScriptBySrc('analytics.js');
+});
+```
+
+After calling this, the old script element is replaced with a new one pointing to `analytics.js?timestamp=1234567890`, forcing the browser to fetch and execute a fresh copy.

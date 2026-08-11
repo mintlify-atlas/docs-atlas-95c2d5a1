@@ -1,47 +1,117 @@
 ---
-title: "Quickstart"
-description: "Begin with a guide on the fastest path to a successful outcome"
+title: "Get Started with Swappit in 5 Minutes"
+sidebarTitle: "Quickstart"
+description: "Build a working partial-page navigation example with Swappit from scratch — install, markup, and first update in under 5 minutes."
 ---
 
-Describe how someone begins using your product. What is the first thing they need to do? Are there any prerequisites?
-
-A quickstart should take someone from zero to using your product. They'll get a quick win and a sense of what they can accomplish.
-
-## Prerequisites
-
-Before you begin, you must have:
-
-- Requirement one (for example, Node.js 18+, a free account, an API key)
-- Requirement two (for example, a compatible device, a compatible browser, a compatible operating system)
-
-## Get started
+In this guide you'll build a two-page site where clicking a navigation link swaps only the content area — no full page reload, no framework, no build step. By the end you'll have a working `index.html` and `about.html` where the header and main content update in place when the user navigates between them.
 
 <Steps>
-  <Step title="Install">
-    Describe how to install your product or sign up.
 
-    ```bash
-    npm install your-package
-    ```
-  </Step>
-  <Step title="Configure">
-    Describe any setup or configuration needed before first use.
+  <Step title="Include Swappit">
+    Add the Swappit script to your page. The CDN is the quickest way to get started:
 
-    ```bash
-    your-cli init
+    ```html
+    <script src="https://cdn.jsdelivr.net/npm/@soyleninjs/swappit/swappit.min.js"></script>
     ```
-  </Step>
-  <Step title="Run it">
-    Show the first thing a user does to see it working.
 
-    ```bash
-    your-cli start
-    ```
+    Place this tag before your own `<script>` block — Swappit must be loaded before you create an instance.
   </Step>
+
+  <Step title="Mark update regions on the main page">
+    Create `index.html`. Add `data-app-update` attributes to every region you want Swappit to be able to replace, and add `data-swappit-handle="app"` to any navigation link you want Swappit to intercept automatically.
+
+    ```html
+    <div data-app-update="header">
+      <h1>Home</h1>
+    </div>
+
+    <div data-app-update="content">
+      <p>Welcome to the home page.</p>
+    </div>
+
+    <nav>
+      <a href="./about.html" data-swappit-handle="app">About</a>
+    </nav>
+
+    <script src="https://cdn.jsdelivr.net/npm/@soyleninjs/swappit/swappit.min.js"></script>
+    <script>
+      const app = new Swappit('app');
+    </script>
+    ```
+
+    The string `'app'` is the **handle**. It becomes the prefix in `data-app-update`. The handle can be any unique string — `'nav'`, `'main-layout'`, `'site'` — as long as it matches on both pages.
+
+    <Tip>
+      `data-swappit-handle="app"` on the `<a>` tag tells Swappit to intercept clicks on that link and call `app.update('./about.html')` automatically. No click handler code needed.
+    </Tip>
+  </Step>
+
+  <Step title="Create the target page (about.html)">
+    Create `about.html` alongside `index.html`. It only needs the same `data-app-update` regions — Swappit fetches this file in the background and extracts the matching elements from it.
+
+    ```html
+    <div data-app-update="header">
+      <h1>About</h1>
+    </div>
+
+    <div data-app-update="content">
+      <p>This is the about page.</p>
+    </div>
+    ```
+
+    This file does **not** need a full `<html>`, `<head>`, or `<body>` structure — Swappit parses the fetched HTML in memory and only reads the update regions from it. A full HTML document works too; Swappit simply ignores everything outside the named regions.
+
+    <Note>
+      Both pages must use the **same region names** (the values of `data-app-update`) for the swap to work. If a region is present in `index.html` but missing from `about.html`, Swappit hides it by adding the `hidden` class to the live element.
+    </Note>
+  </Step>
+
+  <Step title="Try it">
+    Open `index.html` in a browser (via a local server, since Swappit uses `fetch`). Click the **About** link.
+
+    Here is what happens under the hood:
+
+    1. Swappit intercepts the click because the link has `data-swappit-handle="app"`.
+    2. It calls `app.update('./about.html')` automatically.
+    3. `fetch('./about.html')` retrieves the file and parses it in memory.
+    4. Swappit finds the `header` and `content` regions in the fetched document.
+    5. It replaces the live `data-app-update="header"` and `data-app-update="content"` elements in the DOM with the new versions — **no page reload**.
+
+    The URL bar, scroll position of unrelated elements, and anything outside the named regions remain unchanged.
+  </Step>
+
 </Steps>
 
-<Tip>
-  Give people a way to get help. This could be a link to a support page, a chat with a customer support agent, or a forum for your product.
+## Next steps
 
-  Example: Need help? Reach out to us at [support@yourcompany.com](mailto:support@yourcompany.com).
-</Tip>
+<CardGroup cols={2}>
+  <Card
+    title="Automatic Links"
+    icon="link"
+    href="/usage/automatic-links"
+  >
+    Learn how `data-swappit-handle` works in depth — per-link preloading, cache control, and dynamic DOM observation.
+  </Card>
+  <Card
+    title="Declarative Instance"
+    icon="code"
+    href="/usage/swappit-instance"
+  >
+    Use the `<swappit-instance>` custom element to configure your Swappit instance entirely in HTML, with no JavaScript required.
+  </Card>
+  <Card
+    title="Smart Preloading"
+    icon="bolt"
+    href="/guides/preloading"
+  >
+    Speed up navigation with instant or hover-triggered preloading — fetch the next page before the user even clicks.
+  </Card>
+  <Card
+    title="History Navigation"
+    icon="clock-rotate-left"
+    href="/guides/history-navigation"
+  >
+    Enable browser back and forward button support with `updateUrl` and `enableHistory` options.
+  </Card>
+</CardGroup>

@@ -1,0 +1,96 @@
+{
+  "projectType": "sdk-library",
+  "projectName": "Swappit",
+  "projectDescription": "A lightweight JavaScript library for declarative, partial HTML content updates without full page reloads, using custom data attributes instead of a full SPA framework.",
+  "theme": "luma",
+  "primaryColor": "#fcc72c",
+  "lightColor": "#f5d8d5",
+  "darkColor": "#1c3c44",
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Documentation",
+        "groups": [
+          {
+            "group": "Get Started",
+            "pages": [
+              "introduction",
+              "installation",
+              "quickstart"
+            ]
+          },
+          {
+            "group": "Usage",
+            "pages": [
+              "usage/javascript-api",
+              "usage/automatic-links",
+              "usage/swappit-instance"
+            ]
+          },
+          {
+            "group": "Guides",
+            "pages": [
+              "guides/configuration",
+              "guides/preloading",
+              "guides/history-navigation",
+              "guides/target-pages",
+              "guides/script-handling",
+              "guides/troubleshooting"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "API Reference",
+        "groups": [
+          {
+            "group": "API Reference",
+            "pages": [
+              "api/constructor",
+              "api/instance-methods",
+              "api/static-methods",
+              "api/events",
+              "api/data-attributes"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "keyFeatures": [
+    "Declarative partial DOM updates using custom data attributes",
+    "Three usage patterns: JavaScript API, automatic data-attribute links, and <swappit-instance> custom element",
+    "Smart preloading: instant or hover-based, globally or per-link",
+    "Browser history navigation support (back/forward buttons)",
+    "Built-in content cache with manual invalidation control",
+    "MutationObserver-based automatic detection of dynamically added links",
+    "Custom event system for before/after update hooks",
+    "Colorized console logging with 4 severity levels",
+    "Zero external dependencies, works from CDN or npm",
+    "Update ordering via data-[handle]-update-order attributes"
+  ],
+  "publicApiSurface": [
+    "new Swappit(handle, options)",
+    "swappit.update(url, useCache)",
+    "swappit.preloadContents(arrayUrls)",
+    "swappit.reinit(options)",
+    "swappit.destroy()",
+    "Swappit.instances",
+    "Swappit.updateScriptByContent(arrayScriptsNodes)",
+    "Swappit.updateScriptBySrc(matchUrl)",
+    "<swappit-instance> custom element",
+    "data-[handle]-update attribute",
+    "data-[handle]-update-order attribute",
+    "data-swappit-handle attribute",
+    "data-preload attribute",
+    "data-use-cache attribute",
+    "swappit:[handle]:update:before event",
+    "swappit:[handle]:update:after event",
+    "swappit:[handle]:update:error event",
+    "swappit:[handle]:historyUpdate:before event",
+    "swappit:[handle]:historyUpdate:after event",
+    "swappit:[handle]:historyUpdate:error event",
+    "swappit:[handle]:reinit event",
+    "swappit:[handle]:destroy event"
+  ]
+}

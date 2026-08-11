@@ -1,0 +1,121 @@
+---
+title: "Automatic Link Navigation with data-swappit-handle"
+sidebarTitle: "Automatic Links"
+description: "Attach data-swappit-handle to any anchor tag to make it trigger a Swappit update automatically — no onclick handlers needed."
+---
+
+When you add `data-swappit-handle="my-handle"` to an `<a>` tag, Swappit intercepts clicks on that link, prevents the default browser navigation, and calls `update()` with the link's `href` automatically. You never need to write an `onclick` handler — just mark your links with the attribute, create a `Swappit` instance with the matching handle, and Swappit does the rest.
+
+## Basic usage
+
+Add `data-swappit-handle` to your anchor tags and create the matching instance in a script block. The links are wired up automatically on initialization:
+
+```html
+<!-- Update regions -->
+<div data-app-update="header"><h1>Home</h1></div>
+<div data-app-update="content"><p>Home content</p></div>
+
+<!-- Navigation links -->
+<a href="./page1.html" data-swappit-handle="app">Page 1</a>
+<a href="./page2.html" data-swappit-handle="app">Page 2</a>
+
+<script>
+  const app = new Swappit('app');
+</script>
+```
+
+Clicking "Page 1" fetches `./page1.html`, extracts regions tagged `data-app-update`, and swaps them into the current page — no reload required.
+
+## Per-link preload configuration
+
+Each link can declare its own preload strategy using the `data-preload` attribute. Three modes are available:
+
+```html
+<!-- No preload: content is fetched only when the link is clicked -->
+<a href="./page1.html" data-swappit-handle="app">Page 1</a>
+
+<!-- Preload on hover: fetched when the user mouses over or touches the link -->
+<a href="./page2.html" data-swappit-handle="app" data-preload="hover">Page 2</a>
+
+<!-- Preload instantly: fetched immediately when the page loads -->
+<a href="./page3.html" data-swappit-handle="app" data-preload="instant">Page 3</a>
+```
+
+<CardGroup cols={3}>
+  <Card title="No data-preload" icon="mouse-pointer">
+    Content is fetched only when the user clicks the link. Best for pages that are rarely visited.
+  </Card>
+  <Card title='data-preload="hover"' icon="hand-pointer">
+    Content is fetched when the user hovers (desktop) or touches (mobile) the link — before the click completes. Gives a head start without fetching everything upfront.
+  </Card>
+  <Card title='data-preload="instant"' icon="bolt">
+    Content is fetched as soon as the page loads. Best for the pages most likely to be visited next.
+  </Card>
+</CardGroup>
+
+## Per-link cache control
+
+By default, Swappit uses its content cache when a link is clicked. To force a fresh network request for a specific link — bypassing any previously cached version — set `data-use-cache="false"`:
+
+```html
+<!-- Always fetches fresh content on click, ignoring the cache -->
+<a href="./live-scores.html" data-swappit-handle="app" data-use-cache="false">
+  Live Scores
+</a>
+```
+
+Omitting `data-use-cache` (or setting it to `"true"`) uses the cached version if one exists.
+
+## Global preload default
+
+Instead of adding `data-preload` to every link individually, you can set a default preload mode for all links managed by an instance:
+
+```javascript
+const app = new Swappit('app', { preload: 'hover' });
+```
+
+All links with `data-swappit-handle="app"` that do **not** have their own `data-preload` attribute will inherit `hover` preload behavior.
+
+Individual `data-preload` attributes on a link **always override** the global default:
+
+```html
+<!-- Inherits 'hover' from the instance option -->
+<a href="./page1.html" data-swappit-handle="app">Page 1</a>
+
+<!-- Overrides to 'instant' for this specific link -->
+<a href="./page2.html" data-swappit-handle="app" data-preload="instant">Page 2</a>
+```
+
+<Tip>
+  Combine global and per-link preload settings for best performance. Set `preload: 'hover'` at the instance level as a sensible baseline for all navigation links, then use `data-preload="instant"` on the two or three pages users are most likely to visit first (a homepage hero link, the first tab in a navigation bar, etc.). This warms the cache for the most probable next destinations without fetching the entire site on page load.
+</Tip>
+
+## Automatic detection of dynamic links
+
+Swappit starts a `MutationObserver` when an instance is created. This observer watches `document.body` for new child elements — so any `<a data-swappit-handle="app">` added to the DOM **after initialization** is automatically wired up with the same click and preload behavior as links that existed at startup:
+
+```javascript
+document.querySelector('#container').innerHTML = `
+  <a href="./new-page.html" data-swappit-handle="app">New Page</a>
+`;
+// Automatically configured by Swappit — no extra code needed
+```
+
+This works whether links are added via `innerHTML`, `appendChild`, a client-side rendering library, or any other DOM manipulation method.
+
+## Advantages
+
+<CardGroup cols={2}>
+  <Card title="Zero JS in markup" icon="code">
+    No `onclick` handlers or inline scripts required. All wiring happens through a single `data-swappit-handle` attribute.
+  </Card>
+  <Card title="Flexible preload per link" icon="sliders">
+    Mix and match `"instant"`, `"hover"`, and no preload across different links on the same page.
+  </Card>
+  <Card title="Automatic dynamic detection" icon="eye">
+    The MutationObserver picks up links injected by JavaScript after page load — no reinitialization needed.
+  </Card>
+  <Card title="Per-link cache control" icon="database">
+    Mark individual links with `data-use-cache="false"` to always fetch fresh content for time-sensitive pages.
+  </Card>
+</CardGroup>
