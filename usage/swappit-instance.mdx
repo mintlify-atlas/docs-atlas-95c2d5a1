@@ -1,6 +1,6 @@
 ---
-title: "Declarative Configuration with <swappit-instance>"
-sidebarTitle: "swappit-instance"
+title: "Declarative Swappit Configuration with swappit-instance"
+sidebarTitle: "Swappit Instance"
 description: "Use the <swappit-instance> custom element to create and configure a Swappit instance declaratively in HTML without writing JavaScript."
 ---
 
@@ -17,7 +17,7 @@ The only required attribute is `data-handle`. This single line creates a fully f
 All other attributes are optional and default to their off states. Place the element anywhere in `<body>` — after the Swappit script tag.
 
 <Note>
-  `<swappit-instance>` must appear **after** the `swappit.min.js` `<script>` tag in your HTML. The custom element is registered by that script, so if the element appears in the DOM before the script has run, the browser won't know what it is and `connectedCallback` will never fire.
+  The `swappit.min.js` `<script>` tag must be present in the page — typically at the end of `<body>`. If the browser parses `<swappit-instance>` before the script has loaded, it queues the element for upgrade; `connectedCallback` fires once the script runs and registers the custom element. A safe pattern is to place `<swappit-instance>` anywhere in `<body>` and put `<script src="swappit.min.js">` at the very end of the body.
 </Note>
 
 ## Available attributes
@@ -90,9 +90,9 @@ A complete HTML page combining update regions, declarative configuration, naviga
 </script>
 ```
 
-Notice that the `<swappit-instance>` element is placed **before** the `<script src="...">` tag in the body — but the script tag must come before any inline `<script>` that references `Swappit`. The custom element itself is processed when `connectedCallback` fires, which happens after the defining script has loaded. A safe layout is:
+The recommended body layout is:
 
 1. Your update region elements
-2. Your `<swappit-instance>` element (or navigation links)
-3. `<script src="swappit.min.js">` — this defines `Swappit` and registers `<swappit-instance>`
+2. Your `<swappit-instance>` element and navigation links
+3. `<script src="swappit.min.js">` — this defines `Swappit`, registers `<swappit-instance>`, and triggers the upgrade of any already-parsed `<swappit-instance>` elements
 4. Any additional inline `<script>` blocks that use `Swappit.instances.get()`

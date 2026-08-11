@@ -1,7 +1,7 @@
 ---
-title: "Browser History Navigation in Swappit"
+title: "Browser History and Back/Forward Navigation in Swappit"
 sidebarTitle: "History Navigation"
-description: "Enable back and forward browser button support in Swappit by configuring updateUrl and enableHistory together."
+description: "Enable browser back/forward button support in Swappit by setting updateUrl and enableHistory together. Only one instance may own the history stack at once."
 ---
 
 Swappit supports the browser History API so users can navigate with the back and forward buttons after partial page updates. By default, Swappit updates the DOM without touching the address bar or the history stack at all. History support is opt-in and requires two options to be enabled together.
@@ -67,7 +67,7 @@ This is useful when you want the URL to reflect the current content state for bo
 
 ## Constraint: One History Controller at a Time
 
-Only one Swappit instance can control the browser history at a time. Attempting to create a second instance with both `updateUrl: true` and `enableHistory: true` will throw an error:
+Only one Swappit instance can control the browser history at a time. Swappit enforces this with a global singleton guard stored at `window.__swappitNavigationController`. When an instance is created with both options active, it claims this guard. Attempting to create a second instance with both `updateUrl: true` and `enableHistory: true` will throw an error:
 
 ```javascript
 // ❌ This throws: only one instance can control history

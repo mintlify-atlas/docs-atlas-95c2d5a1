@@ -1,5 +1,5 @@
 ---
-title: "Preloading Content with Swappit"
+title: "Preloading Content with Swappit for Faster Navigation"
 sidebarTitle: "Preloading"
 description: "Preload HTML pages into Swappit's cache before the user clicks — globally, per link, or programmatically — for instant-feel navigation."
 ---
@@ -15,7 +15,7 @@ Swappit supports three preload modes that control when a URL is fetched relative
     Content is fetched only when the user clicks the link. No pre-fetching occurs.
   </Card>
   <Card title="hover" icon="hand-pointer">
-    Content is fetched when the mouse enters the link (desktop) or when a `touchstart` fires (mobile). Ideal for secondary pages.
+    Content is fetched on `mouseenter` (desktop) or `touchstart` (mobile). Ideal for secondary pages.
   </Card>
   <Card title="instant" icon="bolt">
     Content is fetched as soon as the page initializes, before any user interaction. Best for high-priority destinations.
@@ -68,7 +68,7 @@ app.update('./content.html');
 
 After the batch completes, Swappit logs a summary (when `log: true`):
 
-```
+```text
 Swappit [app]: Precarga completada: 3 exitosas, 0 fallidas
 ```
 

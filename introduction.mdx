@@ -1,7 +1,7 @@
 ---
-title: "Swappit: Declarative HTML Swapping Without a SPA"
+title: "Swappit: Zero-Dependency Declarative HTML Updates"
 sidebarTitle: "Introduction"
-description: "Learn what Swappit is, how it works, and when to use it over a full SPA or manual fetch/DOM code."
+description: "Learn what Swappit is, how it works, and when to use it — a zero-dependency JS library for declarative partial HTML updates with no build step required."
 ---
 
 Swappit is a lightweight, zero-dependency JavaScript library that updates specific regions of your HTML page without a full reload. Instead of wiring up `fetch` calls and manual DOM manipulation — or reaching for an entire SPA framework — you mark the elements you want to update with `data-*` attributes and let Swappit handle the rest. The result is modern, SPA-like navigation with minimal setup and no build step required.
@@ -62,7 +62,7 @@ If a region exists in the current page but is absent from the fetched document, 
 - **Three usage patterns** — Programmatic JavaScript API, automatic link handling via `data-swappit-handle`, or a fully declarative `<swappit-instance>` custom element.
 - **Smart preloading** — Configure instant preload (on page load) or hover preload (on `mouseenter`/`touchstart`), globally per instance or individually per link.
 - **History navigation** — Optional `pushState`/`replaceState` integration so browser back and forward buttons work as expected.
-- **Cache system** — Fetched documents are stored in memory; pass `useCache: false` to force a fresh download when needed.
+- **Cache system** — Fetched documents are stored in memory; pass `false` as the second argument to `update()` to force a fresh download when needed.
 - **DOM observer** — A `MutationObserver` watches for dynamically added links and wires them up automatically.
 - **Event system** — Custom events fire on `window` before and after every update, on error, on history navigation, on reinit, and on destroy.
 - **Colorized logging** — Four-level debug logging (info, success, warning, error) activated with a single `log: true` option.

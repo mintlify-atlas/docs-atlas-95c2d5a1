@@ -1,7 +1,7 @@
 ---
-title: "Using the Swappit JavaScript API Directly"
+title: "Using the Swappit JavaScript API to Control Updates"
 sidebarTitle: "JavaScript API"
-description: "Use Swappit's programmatic API to call update(), preloadContents(), reinit(), and destroy() from your own JavaScript code."
+description: "Use Swappit's programmatic API to call update(), preloadContents(), reinit(), and destroy() from JavaScript in response to any event."
 ---
 
 The declarative approaches — `<swappit-instance>` and `data-swappit-handle` links — cover most scenarios out of the box. But when you need **programmatic control**, the JavaScript API lets you call updates in response to anything: a button click, a form submission, a scroll event, an API response, or a timer. You create a `Swappit` instance directly in JavaScript and call its methods whenever your application logic demands it.
@@ -154,6 +154,9 @@ app.destroy();
   </Step>
   <Step title="Removes all link listeners">
     Strips `click`, `mouseenter`, and `touchstart` listeners from every `data-swappit-handle` link that this instance was managing.
+  </Step>
+  <Step title="Emits the destroy event">
+    Dispatches `swappit:[handle]:destroy` on `window` so listeners can react before the instance disappears.
   </Step>
   <Step title="Removes from the registry">
     Deletes the instance from `Swappit.instances` so its handle can be reused.

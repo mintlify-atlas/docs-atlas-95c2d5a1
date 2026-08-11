@@ -1,7 +1,7 @@
 ---
 title: "Automatic Link Navigation with data-swappit-handle"
 sidebarTitle: "Automatic Links"
-description: "Attach data-swappit-handle to any anchor tag to make it trigger a Swappit update automatically — no onclick handlers needed."
+description: "Attach data-swappit-handle to any anchor tag to make it trigger a Swappit partial update automatically — no onclick handlers or JavaScript needed."
 ---
 
 When you add `data-swappit-handle="my-handle"` to an `<a>` tag, Swappit intercepts clicks on that link, prevents the default browser navigation, and calls `update()` with the link's `href` automatically. You never need to write an `onclick` handler — just mark your links with the attribute, create a `Swappit` instance with the matching handle, and Swappit does the rest.

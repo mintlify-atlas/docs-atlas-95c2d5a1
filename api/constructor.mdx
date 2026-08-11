@@ -1,5 +1,5 @@
 ---
-title: "Swappit Constructor and Instance Properties"
+title: "Swappit Constructor: Parameters and Instance Properties"
 sidebarTitle: "Constructor"
 description: "Create a Swappit instance with new Swappit(handle, options). Reference for all constructor parameters, option fields, and instance properties."
 ---
@@ -57,7 +57,7 @@ const swappit = new Swappit(handle, options);
 | Error message | Cause |
 |---|---|
 | `"Swappit: El parámetro handle es obligatorio"` | `handle` is falsy (empty string, `null`, `undefined`, etc.). |
-| `"Swappit: El handle \"[handle]\" ya está en uso..."` | A Swappit instance with that handle is already registered in `Swappit.instances`. |
+| `"Swappit: El handle \"[handle]\" ya está en uso. Utilice un identificador diferente."` | A Swappit instance with that handle is already registered in `Swappit.instances`. |
 | `"Swappit: Solo una instancia puede controlar el historial."` | A second instance is constructed with both `updateUrl: true` and `enableHistory: true` while another instance already controls history. |
 
 ## Example

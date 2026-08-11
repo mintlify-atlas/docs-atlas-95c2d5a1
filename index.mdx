@@ -26,23 +26,23 @@ Swappit lets you replace targeted sections of your HTML page by fetching new con
 Modern web experiences often need only a sliver of a page to change — a content area, a sidebar, a product listing. Full page reloads feel slow; a full SPA feels like overkill. Swappit sits in the middle: fetch a URL, find elements that share the same handle-based `data-` attributes, and swap them in place.
 
 <CardGroup cols={3}>
-  <Card title="Zero Dependencies" icon="feather">
+  <Card title="Zero Dependencies" icon="feather" href="/introduction">
     Pure vanilla JavaScript. No frameworks, no build step required.
   </Card>
-  <Card title="Three Usage Patterns" icon="layer-group">
+  <Card title="Three Usage Patterns" icon="layer-group" href="/usage/javascript-api">
     JavaScript API, declarative links with `data-swappit-handle`, or the `<swappit-instance>` custom element.
   </Card>
-  <Card title="Smart Preloading" icon="bolt">
+  <Card title="Smart Preloading" icon="bolt" href="/guides/preloading">
     Prefetch on hover or instantly — globally or per link — for instant-feel navigation.
   </Card>
-  <Card title="History Support" icon="clock-rotate-left">
+  <Card title="History Support" icon="clock-rotate-left" href="/guides/history-navigation">
     Full browser back/forward button support via the History API.
   </Card>
-  <Card title="Content Cache" icon="database">
-    Built-in cache with per-request invalidation control.
+  <Card title="Event System" icon="bell" href="/api/events">
+    Rich lifecycle events: `update:before`, `update:after`, `update:error`, `historyUpdate`, `reinit`, and `destroy`.
   </Card>
-  <Card title="Event System" icon="bell">
-    `before`, `after`, and `error` events on every update cycle.
+  <Card title="DOM Observer" icon="eye" href="/usage/automatic-links">
+    Automatically detects and configures new links added to the DOM dynamically.
   </Card>
 </CardGroup>
 
